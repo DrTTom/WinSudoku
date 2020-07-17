@@ -142,7 +142,7 @@ namespace WinSudoku
             AddFindings();
             int numberRestores = 0;
             var target = findEntryWithMinChoices();
-            if (target.getRow() == -1)
+            if (target.Row == -1)
             {
                 return numberRestores;
             }
@@ -151,7 +151,7 @@ namespace WinSudoku
             NumberSet[][] backupC = nextTransposition.nextTransposition.CloneEntries();
             IllegalEntryException last = null;
 
-            List<int> values = entries[target.getRow()][target.getCol()].GetAllowedValues();
+            List<int> values = entries[target.Row][target.Col].GetAllowedValues();
             if (doReverse)
             {
                 values.Reverse();
@@ -160,7 +160,7 @@ namespace WinSudoku
             {
                 try
                 {
-                    SetEntry(target.getRow(), target.getCol(), num);
+                    SetEntry(target.Row, target.Col, num);
                     numberRestores += complete(doReverse);
                     return numberRestores;
                 }
@@ -223,7 +223,7 @@ namespace WinSudoku
             while (pendingFindings.Count > 0)
             {
                 Entry finding = pendingFindings.First();
-                SetEntry(finding.getRow(), finding.getCol(), finding.getNum());
+                SetEntry(finding.Row, finding.Col, finding.Num);
                 pendingFindings.Remove(finding);
                 changed = true;
             }
@@ -238,7 +238,7 @@ namespace WinSudoku
         /// <param name="num"></param>
         /// <exception cref="IllegalEntryException">In case it is known that the restriction makes the matrix impossible to complete.</exception>
         protected virtual void forbidValue(int row, int col, int num)
-        {
+        {         
             int state = entries[row][col].ForbidValue(num);
             switch (state)
             {
@@ -248,8 +248,6 @@ namespace WinSudoku
                     break;
                 default:
                     pendingFindings.Add(new Entry(row, col, state));
-                    //nextTransposition.pendingFindings.Add(new Entry(col, state, row));
-                    //nextTransposition.nextTransposition.pendingFindings.Add(new Entry(state, row, col));
                     break;
             }
         }

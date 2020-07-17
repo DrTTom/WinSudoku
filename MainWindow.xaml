@@ -17,7 +17,7 @@
             <MenuItem Header="Datei">
                 <MenuItem Header="Neu" Click="MenuItem_New"/>
                 <MenuItem Header="Öffnen" Click="MenuItem_Load"/>
-                <MenuItem Header="Speichern"/>
+                <MenuItem Header="Speichern" Click="MenuItem_Save"/>
             </MenuItem>
         </Menu>
         <Grid Name="PLQ" HorizontalAlignment="Center" Height="450" Margin="5,5,5,5" VerticalAlignment="Top" Width="450" Grid.Row="1">
@@ -44,10 +44,10 @@
                 <ColumnDefinition Width="*"></ColumnDefinition>
             </Grid.ColumnDefinitions>
         </Grid>
-        <Button Content="Lösen" HorizontalAlignment="Center" Margin="0,5,0,5" VerticalAlignment="Bottom" Width="75" Click="Button_Click" Grid.Row="2"/>
+        <Button Name="SolveButton" Content="Lösen" HorizontalAlignment="Center" Margin="0,5,0,5" VerticalAlignment="Bottom" Width="75" Click="Button_Solve" Grid.Row="2"/>
         <Label Name="stateLabel" Content="" HorizontalAlignment="Right" Margin="5,5,5,5" Grid.Row="2" Height="25" VerticalAlignment="Bottom"/>
 
 
     </Grid>
-    
+
 </Window>

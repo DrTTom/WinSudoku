@@ -1,8 +1,12 @@
 ﻿using System;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using Json.Net;
+
 
 namespace WinSudoku
 {
@@ -67,30 +71,60 @@ namespace WinSudoku
             }
         }
 
-        private void Button_Click(object sender, RoutedEventArgs e)
+        private int[][] getUserInput()
+        {
+            int[][] result = new int[cells.Length][];
+            for (int row = 0; row < cells.Length; row++)
+            {
+                result[row] = new int[cells[0].Length];
+            }
+            forEachCell((row, col, box) =>
+            {
+                if (box.Text.Length == 1 && box.Foreground == Brushes.Black)
+                {
+                    result[row][col] = Int32.Parse(box.Text);
+                }
+            });
+            return result;
+        }
+
+        private async void Button_Solve(object sender, RoutedEventArgs e)
+        {
+            var input = getUserInput();
+            SolveButton.IsEnabled = false;
+            Task.Run(() => solveAndAnalyze(input));
+            stateLabel.Content = "Rechne...";
+        }
+
+        private void solveAndAnalyze(int[][] input)
         {
             String status = "";
             try
             {
-                int start = Environment.TickCount;
-                Sudoku solver = createSolver();
+                int duration = Environment.TickCount;
+                Sudoku solver = createSolver(input);
                 solver.AddFindings();
-                ShowResult(solver, Brushes.Blue);
+                // TODO: should better copy the results before continuing computation
+                stateLabel.Dispatcher.Invoke(() => ShowResult(solver, Brushes.Blue));
                 int diff = solver.complete(false);
-                ShowResult(solver, Brushes.Gray);
+                duration = Environment.TickCount - duration;
+                stateLabel.Dispatcher.Invoke(() => ShowResult(solver, Brushes.Gray));
 
-                Sudoku other = createSolver();
+                Sudoku other = createSolver(input);
                 other.AddFindings();
                 diff += other.complete(true);
-                status = IsDifferent(solver, other) ? "Mehrdeutig" : "Schwierigkeit " + Convert.ToString(diff);
-                start = Environment.TickCount - start;
-                status = status +  "(" + Convert.ToString(start) + ")";                
+                status = IsDifferent(solver, other) ? "Mehrdeutig" : "Schwierigkeit " + Convert.ToString(diff);                
+                status = status + " (" + Convert.ToString(duration) + " ms)";
             }
             catch (IllegalEntryException)
             {
                 status = "Unlösbar";
             }
-            stateLabel.Content = status;
+            stateLabel.Dispatcher.Invoke(() =>
+            {
+                stateLabel.Content = status;
+                SolveButton.IsEnabled = true;
+            });
         }
 
         private bool IsDifferent(Sudoku solver, Sudoku other)
@@ -108,24 +142,20 @@ namespace WinSudoku
             return false;
         }
 
-        private Sudoku createSolver()
+        private Sudoku createSolver(int[][] input)
         {
             Sudoku solver = Sudoku.create(3, 3);
-            forEachCell((row, col, box) =>
+            for (int row = 0; row < input.Length; row++)
             {
-                if (box.Text.Length == 1 && box.Foreground == Brushes.Black)
+                for (int col = 0; col < input[row].Length; col++)
                 {
-                    try
+                    int val = input[row][col];
+                    if (val > 0)
                     {
-                        solver.SetEntry(row, col, Int32.Parse(box.Text) - 1);
-                    }
-                    catch (IllegalEntryException e)
-                    {
-                        cells[row][col].Foreground = Brushes.Red;
-                        throw e;
+                        solver.SetEntry(row, col, val - 1);
                     }
                 }
-            });
+            }
             return solver;
         }
 
@@ -136,35 +166,38 @@ namespace WinSudoku
 
         private void MenuItem_Load(object sender, RoutedEventArgs e)
         {
-            // TODO: find out which deserializazion works and how to include it to the project and then read file:            
-            int[][] mostDifficult = new int[][] {
-                new int[] { 8, 0, 0, 0, 0, 0, 0, 0, 0 },
-                new int[] { 0, 0, 3, 6, 0, 0, 0, 0, 0 },
-                new int[] { 0, 7, 0, 0, 9, 0, 2, 0, 0 },
-                new int[] { 0, 5, 0, 0, 0, 7, 0, 0, 0 },
-                new int[] { 0, 0, 0, 0, 4, 5, 7, 0, 0 },
-                new int[] { 0, 0, 0, 1, 0, 0, 0, 3, 0 },
-                new int[] { 0, 0, 1, 0, 0, 0, 0, 6, 8 },
-                new int[] { 0, 0, 8, 5, 0, 0, 0, 1, 0 },
-                new int[] { 0, 9, 0, 0, 0, 0, 4, 0, 0 }
+            string path = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+            var fileDialog = new System.Windows.Forms.OpenFileDialog()
+            {
+                Filter = "Sudoku (*.sudoku)|*.sudoku",
+                InitialDirectory = path
             };
-
-            int[][] weserkurierSchwer= new int[][] {
-                new int[] { 0, 0, 0, 5, 0, 9, 0, 0, 0 },
-                new int[] { 0, 0, 3, 0, 0, 0, 4, 0, 0 },
-                new int[] { 0, 6, 0, 0, 7, 0, 0, 9, 0 },
-                new int[] { 4, 0, 0, 0, 9, 0, 0, 0, 3 },
-                new int[] { 0, 0, 6, 8, 0, 4, 2, 0, 0 },
-                new int[] { 8, 0, 0, 0, 3, 0, 0, 0, 5 },
-                new int[] { 0, 1, 0, 0, 5, 0, 0, 6, 0 },
-                new int[] { 0, 0, 8, 0, 0, 0, 7, 0, 0 },
-                new int[] { 0, 0, 0, 1, 0, 3, 0, 0, 0 }
-            }; 
-            int[][] example = mostDifficult;
-
-            forEachCell((row, col, box) => box.Text = (example[row][col] > 0 ? Convert.ToString(example[row][col]): ""));
+            if (fileDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                var read = JsonNet.Deserialize<int[][]>(File.ReadAllText(fileDialog.FileName));
+                forEachCell((row, col, box) =>
+                {
+                    box.Text = (read[row][col] > 0 ? Convert.ToString(read[row][col]) : "");
+                    box.Foreground = Brushes.Black;
+                }
+                );
+            }         
         }
 
+        private void MenuItem_Save(object sender, RoutedEventArgs e)
+        {
+            string path = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+            var fileDialog = new System.Windows.Forms.SaveFileDialog()
+            {
+                Filter = "Sudoku (*.sudoku)|*.sudoku",
+                InitialDirectory = path
+            };
+            if (fileDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                String json = Json.Net.JsonNet.Serialize(getUserInput());
+                File.WriteAllText(fileDialog.FileName, json);
+            }
+        }
 
         private void ShowResult(Sudoku solver, SolidColorBrush color)
         {
