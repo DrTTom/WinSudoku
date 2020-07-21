@@ -8,7 +8,7 @@ namespace WinSudoku
     /// may not be detected by the polynomial part of the algorithm.
     /// </summary>
     [Serializable]
-    internal class IllegalEntryException : Exception
+    public class IllegalEntryException : Exception
     {
         // real details are obscure anyway, so no sense in listing information here
     }

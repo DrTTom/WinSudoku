@@ -13,18 +13,20 @@ namespace WinSudoku
         /// Returned by ForbidValue(int) in case the entry is still unknown.
         /// </summary>
         public const int UNKNOWN = -1;
-        /*
-         * Return value to indicate that the state of this object did not change.
-         */
-        public const int ALREADY_KNOWN = -2;
+
+        /// <summary>
+        /// Return value to indicate that the state of this object did not change.
+        /// </summary>
+        public const int ALREADYKNOWN = -2;
 
         private bool[] allowedValues;
         private int numPossibleValues;
         private int value = UNKNOWN;
 
-        /**
-         * Creates instance with all entries 0,...,size-1 possible.
-         */
+        /// <summary>
+        /// Creates instance with all entries 0,...,size-1 possible.
+        /// </summary>
+        /// <param name="size"></param>
         public NumberSet(int size)
         {
             allowedValues = new bool[size];
@@ -37,7 +39,7 @@ namespace WinSudoku
 
         /**
          * Creates copy.
-         */
+         */        
         internal NumberSet(NumberSet original)
         {
             allowedValues = new bool[original.allowedValues.Length];
@@ -50,7 +52,7 @@ namespace WinSudoku
          * Forbids a value.
          */
         /// <returns>OK, ALREADY_KNOWN or the last remaining allowed value</returns>
-        /// <exception cref="IllegalEntryException">if there remains no possible entry</exception>
+        /// <exception cref="IllegalEntryException">if there remains no possible entry</exception>        
         public int ForbidValue(int num)
         {
             if (allowedValues[num])
@@ -67,7 +69,7 @@ namespace WinSudoku
                 }
                 return UNKNOWN;
             }
-            return ALREADY_KNOWN;
+            return ALREADYKNOWN;
         }
 
         /**
@@ -81,7 +83,7 @@ namespace WinSudoku
             {
                 if (value == num)
                 {
-                    return ALREADY_KNOWN;
+                    return ALREADYKNOWN;
                 }
                 value = num;
                 for (int i = 0; i < allowedValues.Length; i++)
@@ -105,9 +107,10 @@ namespace WinSudoku
             return sb.ToString().PadLeft(allowedValues.Length);
         }
 
-        /*
-         * Returns the specified value or OK if unknown.
-         */
+        /// <summary>
+        /// Returns the specified value.
+        /// </summary>
+        /// <returns>may be UNKNOWN</returns>
         public int getValue()
         {
             return value;

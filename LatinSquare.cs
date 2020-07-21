@@ -14,19 +14,21 @@ namespace WinSudoku
         /**
          * Allowed or determined values in each cell
          */
-        protected NumberSet[][] entries;
+        internal NumberSet[][] entries;
+
         /**
          * Entries which are determined logically while setting other entries.
          */
         internal HashSet<Entry> pendingFindings = new HashSet<Entry>();
-        /**
-         * Looking at a partial latin square as a mathematician, it appears to be a set of triples from {1..n}x{1..n}x{1..n} where no two 
-         * triples equal in exactly 2 components. The actual matrix is only a representation of it choosing one component as entry and 
-         * the other two as row and column index. There are obviously 3 such matrices (if rows and colums are interchangeable), this attribute
-         * is the one where the original column index plays the role of the row index, the original entry values become column indices and the original 
-         * rows become entries.
-         */
-        protected LatinSquare nextTransposition;
+
+        /// <summary>
+        /// Looking at a partial latin square as a mathematician, it appears to be a set of triples from {1..n}x{1..n}x{1..n} where no two 
+        /// triples equal in exactly 2 components.The actual matrix is only a representation of it choosing one component as entry and           
+        /// the other two as row and column index.There are obviously 3 such matrices (if rows and colums are interchangeable), this attribute
+        /// is the one where the original column index plays the role of the row index, the original entry values become column indices and the original
+        /// rows become entries.
+        /// </summary>
+        internal LatinSquare nextTransposition;
 
         /**
          * Creates an instance linked with its two alternative forms.
@@ -93,7 +95,7 @@ namespace WinSudoku
          */
         public virtual void SetEntry(int row, int col, int num)
         {
-            if (entries[row][col].SetValue(num) == NumberSet.ALREADY_KNOWN)
+            if (entries[row][col].SetValue(num) == NumberSet.ALREADYKNOWN)
             {
                 return;
             }
@@ -238,11 +240,11 @@ namespace WinSudoku
         /// <param name="num"></param>
         /// <exception cref="IllegalEntryException">In case it is known that the restriction makes the matrix impossible to complete.</exception>
         protected virtual void forbidValue(int row, int col, int num)
-        {         
+        {
             int state = entries[row][col].ForbidValue(num);
             switch (state)
             {
-                case NumberSet.ALREADY_KNOWN: break;
+                case NumberSet.ALREADYKNOWN: break;
                 case NumberSet.UNKNOWN:
                     nextTransposition.forbidValue(col, num, row);
                     break;
@@ -267,7 +269,40 @@ namespace WinSudoku
             return sb.ToString();
         }
 
+        public override bool Equals(object obj)
+        {
+            if (obj == null || GetType() != obj.GetType())
+            {
+                return false;
+            }
+            LatinSquare other = (LatinSquare)obj;
+            for (int row = 0; row < entries.Length; row++)
+            {
+                for (int col = 0; col < entries[row].Length; col++)
+                {
+                    if (GetEntry(row, col) == other.GetEntry(row, col))
+                    {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        // override object.GetHashCode
+        public override int GetHashCode()
+        {
+            int result = 0;
+            int prime = 3;
+            for (int row = 0; row < entries.Length; row++)
+            {
+                for (int col = 0; col < entries[row].Length; col++)
+                {
+                        result = prime * result + GetEntry(row, col);                    
+                }
+            }
+            return result;
+        }
     }
-
-
+   
 }

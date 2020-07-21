@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -15,15 +16,21 @@ namespace WinSudoku
     /// </summary>
     public partial class MainWindow : Window
     {
-        TextBox[][] cells = new TextBox[9][];
+        private static readonly CultureInfo CULTURE = new CultureInfo("de-DE");
+        private static readonly int SIZE = 9;
+
+        private TextBox[][] cells = new TextBox[SIZE][];
+        private int[][] currentInput = new int[SIZE][];
+        private Sudoku currentSolver = Sudoku.create(3, 3);
 
         public MainWindow()
         {
             InitializeComponent();
-            for (int row = 0; row < 9; row++)
+            for (int row = 0; row < SIZE; row++)
             {
-                cells[row] = new TextBox[9];
-                for (int col = 0; col < 9; col++)
+                cells[row] = new TextBox[SIZE];
+                currentInput[row] = new int[SIZE];
+                for (int col = 0; col < SIZE; col++)
                 {
                     cells[row][col] = CreateTextBox();
                     Grid.SetRow(cells[row][col], row);
@@ -35,13 +42,22 @@ namespace WinSudoku
             }
         }
 
+        private void AdaptFont(object sender, SizeChangedEventArgs e)
+        {
+            TextBox box = (TextBox)sender;
+            box.FontSize = 0.7 * box.ActualHeight;
+        }
+
         /// <summary>
         /// Creates a TextBox with necessary properties.
         /// </summary>
         /// <returns></returns>
         private TextBox CreateTextBox()
         {
-            TextBox result = new TextBox();
+            TextBox result = new TextBox()
+            {
+                FontWeight = FontWeights.Bold
+            };
             result.SetValue(HorizontalAlignmentProperty, HorizontalAlignment.Stretch);
             var margin = result.Margin;
             margin.Left = 1;
@@ -51,9 +67,8 @@ namespace WinSudoku
             result.Margin = margin;
             result.SetValue(VerticalContentAlignmentProperty, VerticalAlignment.Center);
             result.SetValue(HorizontalContentAlignmentProperty, HorizontalAlignment.Center);
-            result.FontSize = 30.0;
-            result.FontWeight = FontWeights.Bold;
             result.AddHandler(TextBox.TextChangedEvent, new RoutedEventHandler(AssertNumber));
+            result.SizeChanged += AdaptFont;
             return result;
         }
 
@@ -82,13 +97,13 @@ namespace WinSudoku
             {
                 if (box.Text.Length == 1 && box.Foreground == Brushes.Black)
                 {
-                    result[row][col] = Int32.Parse(box.Text);
+                    result[row][col] = Int32.Parse(box.Text, CULTURE);
                 }
             });
             return result;
         }
 
-        private async void Button_Solve(object sender, RoutedEventArgs e)
+        private void Button_Solve(object sender, RoutedEventArgs e)
         {
             var input = getUserInput();
             SolveButton.IsEnabled = false;
@@ -113,8 +128,8 @@ namespace WinSudoku
                 Sudoku other = createSolver(input);
                 other.AddFindings();
                 diff += other.complete(true);
-                status = IsDifferent(solver, other) ? "Mehrdeutig" : "Schwierigkeit " + Convert.ToString(diff);                
-                status = status + " (" + Convert.ToString(duration) + " ms)";
+                status = solver.Equals(other) ? "Schwierigkeit " + Convert.ToString(diff) : "Mehrdeutig";
+                status = status + " (" + Convert.ToString(duration, CULTURE) + " ms)";
             }
             catch (IllegalEntryException)
             {
@@ -127,22 +142,7 @@ namespace WinSudoku
             });
         }
 
-        private bool IsDifferent(Sudoku solver, Sudoku other)
-        {
-            for (int row = 0; row < 9; row++)
-            {
-                for (int col = 0; col < 9; col++)
-                {
-                    if (solver.GetEntry(row, col) != other.GetEntry(row, col))
-                    {
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
-
-        private Sudoku createSolver(int[][] input)
+        private static Sudoku createSolver(int[][] input)
         {
             Sudoku solver = Sudoku.create(3, 3);
             for (int row = 0; row < input.Length; row++)
@@ -177,11 +177,12 @@ namespace WinSudoku
                 var read = JsonNet.Deserialize<int[][]>(File.ReadAllText(fileDialog.FileName));
                 forEachCell((row, col, box) =>
                 {
-                    box.Text = (read[row][col] > 0 ? Convert.ToString(read[row][col]) : "");
+                    box.Text = (read[row][col] > 0 ? Convert.ToString(read[row][col], CULTURE) : "");
                     box.Foreground = Brushes.Black;
                 }
                 );
-            }         
+            }
+            fileDialog.Dispose();
         }
 
         private void MenuItem_Save(object sender, RoutedEventArgs e)
@@ -197,6 +198,7 @@ namespace WinSudoku
                 String json = Json.Net.JsonNet.Serialize(getUserInput());
                 File.WriteAllText(fileDialog.FileName, json);
             }
+            fileDialog.Dispose();
         }
 
         private void ShowResult(Sudoku solver, SolidColorBrush color)
@@ -206,7 +208,7 @@ namespace WinSudoku
                 if (box.Text.Length == 0)
                 {
                     int num = solver.GetEntry(row, col);
-                    box.Text = num == NumberSet.UNKNOWN ? "" : Convert.ToString(num + 1);
+                    box.Text = num == NumberSet.UNKNOWN ? "" : Convert.ToString(num + 1, CULTURE);
                     box.Foreground = color;
                 }
             });
