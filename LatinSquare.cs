@@ -280,7 +280,7 @@ namespace WinSudoku
             {
                 for (int col = 0; col < entries[row].Length; col++)
                 {
-                    if (GetEntry(row, col) == other.GetEntry(row, col))
+                    if (GetEntry(row, col) != other.GetEntry(row, col))
                     {
                         return false;
                     }
