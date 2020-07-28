@@ -25,6 +25,8 @@ namespace WinSudoku
 
         private static readonly CultureInfo CULTURE = new CultureInfo("de-DE");
         private static readonly int SIZE = 9;
+        private static readonly Regex NUMBER = new Regex(".*([1-9]\\z)");
+
         private static readonly SolidColorBrush INPUT = Brushes.Black;
         private static readonly SolidColorBrush DIRECT_CONCLUSION = Brushes.Gray;
         private static readonly SolidColorBrush COMPUTED = Brushes.Blue;
@@ -62,7 +64,6 @@ namespace WinSudoku
         /// <summary>
         /// Creates a TextBox with necessary properties.
         /// </summary>
-        /// <returns></returns>
         private TextBox CreateTextBox()
         {
             TextBox result = new TextBox()
@@ -72,27 +73,24 @@ namespace WinSudoku
                 HorizontalContentAlignment = HorizontalAlignment.Center,
                 HorizontalAlignment = HorizontalAlignment.Stretch
             };
-
             var margin = result.Margin;
             margin.Left = 1;
             margin.Right = 1;
             margin.Top = 1;
             margin.Bottom = 1;
             result.Margin = margin;
-            result.AddHandler(TextBox.TextChangedEvent, new RoutedEventHandler(AssertNumber));
+
+            result.TextChanged += AssertNumber;
             result.SizeChanged += AdaptFont;
             return result;
         }
-
-
-        private Regex number = new Regex(".*([1-9]\\z)");
 
         private void AssertNumber(object sender, RoutedEventArgs args)
         {
             if (args is TextChangedEventArgs && sender != null)
             {
                 TextBox box = (TextBox)sender;
-                box.Text = number.Match(box.Text).Groups[1].Value;
+                box.Text = NUMBER.Match(box.Text).Groups[1].Value;
                 box.CaretIndex = box.Text.Length;
                 box.Foreground = INPUT;
                 if (fillMode != FillMode.None)
@@ -166,14 +164,14 @@ namespace WinSudoku
                 Sudoku solver = createSolver(input);
                 solver.AddFindings();
                 stateLabel.Dispatcher.Invoke(() => ShowResult(solver, DIRECT_CONCLUSION));
-                int diff = solver.complete(false);
+                int difficulty = solver.complete(false);
                 duration = Environment.TickCount - duration;
                 stateLabel.Dispatcher.Invoke(() => ShowResult(solver, COMPUTED));
 
                 Sudoku other = createSolver(input);
                 other.AddFindings();
-                diff += other.complete(true);
-                status = solver.Equals(other) ? "Schwierigkeit " + Convert.ToString(diff, CULTURE) : "Mehrdeutig";
+                difficulty += other.complete(true);
+                status = solver.Equals(other) ? "Schwierigkeit " + Convert.ToString(difficulty, CULTURE) : "Mehrdeutig";
                 status = status + " (" + Convert.ToString(duration, CULTURE) + " ms)";
             }
             catch (IllegalEntryException)
