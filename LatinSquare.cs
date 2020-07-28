@@ -31,50 +31,6 @@ namespace WinSudoku
         internal LatinSquare nextTransposition;
 
         /**
-         * Creates an instance linked with its two alternative forms.
-         */
-        public static LatinSquare create(int size)
-        {
-            LatinSquare a = new LatinSquare(size);
-            LatinSquare b = new LatinSquare(size);
-            LatinSquare c = new LatinSquare(size);
-            a.nextTransposition = b;
-            b.nextTransposition = c;
-            c.nextTransposition = a;
-            return a;
-        }
-
-        /**
-         * Returns an entry of specified cell or OK if unknown.
-         */
-        public int getNum(int row, int col)
-        {
-            return (entries[row][col].getValue());
-        }
-
-        private NumberSet[][] CloneEntries()
-        {
-            NumberSet[][] clone = new NumberSet[entries.Length][];
-            for (int i = 0; i < entries.Length; i++)
-            {
-                clone[i] = new NumberSet[entries.Length];
-                for (int j = 0; j < entries.Length; j++)
-                {
-                    clone[i][j] = new NumberSet(entries[i][j]);
-                }
-            }
-            return clone;
-        }
-
-        /**
-         * Not to be used except in inheriting classes. Protected would not permit call from static methods.
-         */
-        internal LatinSquare(LatinSquare nt) : this(nt.entries.Length)
-        {
-            nextTransposition = nt;
-        }
-
-        /**
          * Call create(int) for new instance!
          */
         protected LatinSquare(int size)
@@ -88,6 +44,53 @@ namespace WinSudoku
                     entries[i][j] = new NumberSet(size);
                 }
             }
+        }
+
+        /**
+         * Not to be used except in inheriting classes. Protected would not permit call from static methods.
+        */
+        internal LatinSquare(LatinSquare nt) : this(nt.entries.Length)
+        {
+            nextTransposition = nt;
+        }
+
+        /**
+         * Creates an instance linked with its two alternative forms.
+         */
+        public static LatinSquare create(int size)
+        {
+            LatinSquare result = new LatinSquare(size);
+            result.nextTransposition = new LatinSquare(new LatinSquare(result));
+            return result;
+        }
+
+        public virtual LatinSquare CreateCopy()
+        {            
+            LatinSquare result = new LatinSquare(entries, this);
+            LatinSquare nnt = new LatinSquare(nextTransposition.nextTransposition.entries, result);
+            LatinSquare nt = new LatinSquare(nextTransposition.entries, nnt);
+            result.nextTransposition = nt;
+            return result;
+        }
+
+        internal LatinSquare(NumberSet[][] originalEntries, LatinSquare nt )
+        {
+            entries = CloneEntries(originalEntries);
+            nextTransposition = nt;
+        }
+
+        protected static NumberSet[][] CloneEntries(NumberSet[][] original)
+        {
+            NumberSet[][] clone = new NumberSet[original.Length][];
+            for (int i = 0; i < original.Length; i++)
+            {
+                clone[i] = new NumberSet[original.Length];
+                for (int j = 0; j < original.Length; j++)
+                {
+                    clone[i][j] = new NumberSet(original[i][j]);
+                }
+            }
+            return clone;
         }
 
         /**
@@ -124,9 +127,9 @@ namespace WinSudoku
         }
 
 
-        /**
-         * Fix all entries which have been derived from entries made so far.
-         */
+        /// <summary>
+        /// Enter all numbers which have been been derived from entries made so far.
+        /// </summary>
         public void AddFindings()
         {
             while (AddOwnFindings() || nextTransposition.AddOwnFindings() || nextTransposition.nextTransposition.AddOwnFindings())
@@ -148,9 +151,9 @@ namespace WinSudoku
             {
                 return numberRestores;
             }
-            NumberSet[][] backupA = CloneEntries();
-            NumberSet[][] backupB = nextTransposition.CloneEntries();
-            NumberSet[][] backupC = nextTransposition.nextTransposition.CloneEntries();
+            NumberSet[][] backupA = CloneEntries(entries);
+            NumberSet[][] backupB = CloneEntries(nextTransposition.entries);
+            NumberSet[][] backupC = CloneEntries(nextTransposition.nextTransposition.entries);
             IllegalEntryException last = null;
 
             List<int> values = entries[target.Row][target.Col].GetAllowedValues();
@@ -224,7 +227,7 @@ namespace WinSudoku
             bool changed = false;
             while (pendingFindings.Count > 0)
             {
-                Entry finding = pendingFindings.First();
+                Entry finding = pendingFindings.First();  
                 SetEntry(finding.Row, finding.Col, finding.Num);
                 pendingFindings.Remove(finding);
                 changed = true;

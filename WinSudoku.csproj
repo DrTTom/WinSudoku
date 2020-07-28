@@ -98,6 +98,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="BruteForceSolver.cs" />
     <Compile Include="Entry.cs" />
     <Compile Include="IllegalEntryException.cs" />
     <Compile Include="LatinSquare.cs" />

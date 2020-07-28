@@ -161,17 +161,18 @@ namespace WinSudoku
             try
             {
                 int duration = Environment.TickCount;
-                Sudoku solver = createSolver(input);
+                Sudoku solver = createSolver(input);                
                 solver.AddFindings();
                 stateLabel.Dispatcher.Invoke(() => ShowResult(solver, DIRECT_CONCLUSION));
-                int difficulty = solver.complete(false);
+                BruteForceSolver brute = new BruteForceSolver();
+                solver = (Sudoku) brute.Complete(solver);
                 duration = Environment.TickCount - duration;
                 stateLabel.Dispatcher.Invoke(() => ShowResult(solver, COMPUTED));
 
                 Sudoku other = createSolver(input);
-                other.AddFindings();
-                difficulty += other.complete(true);
-                status = solver.Equals(other) ? "Schwierigkeit " + Convert.ToString(difficulty, CULTURE) : "Mehrdeutig";
+                brute.Reverse = true;
+                other = (Sudoku) brute.Complete(other);
+                status = solver.Equals(other) ? "Schwierigkeit " + Convert.ToString(brute.Effort, CULTURE) : "Mehrdeutig";
                 status = status + " (" + Convert.ToString(duration, CULTURE) + " ms)";
             }
             catch (IllegalEntryException)

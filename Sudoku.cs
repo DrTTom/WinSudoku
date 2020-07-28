@@ -15,22 +15,18 @@ namespace WinSudoku
         private int cellRows;
         private int cellCols;
 
-        private NumberSet[][] positionInCell;
-
         private Sudoku(int cellRows, int cellCols) : base(cellCols * cellRows)
         {
             this.cellRows = cellRows;
             this.cellCols = cellCols;
-            positionInCell = new NumberSet[entries.Length][];
-            for (int cell = 0; cell < entries.Length; cell++)
-            {
-                positionInCell[cell] = new NumberSet[entries.Length];
-                for (int num = 0; num < entries.Length; num++)
-                {
-                    positionInCell[cell][num] = new NumberSet(entries.Length);
-                }
-            }
         }
+
+        private Sudoku(Sudoku original) : base(original.entries, original)
+        {
+            this.cellRows = original.cellRows;
+            this.cellCols = original.cellCols;
+        }
+
 
         /// <summary>
         /// Creates instance.
@@ -40,11 +36,23 @@ namespace WinSudoku
         /// <returns></returns>
         public static Sudoku create(int cellRows, int cellCols)
         {
-            Sudoku a = new Sudoku(cellRows, cellCols);
-            LatinSquare b = new LatinSquare(a);
-            LatinSquare c = new LatinSquare(b);
-            a.nextTransposition = c;
-            return a;
+            Sudoku result = new Sudoku(cellRows, cellCols);
+            result.nextTransposition = new LatinSquare(new LatinSquare(result));
+            return result;
+        }
+
+        /// <summary>
+        /// Create a deep copy of this (including transposed forms)
+        /// </summary>
+        /// <returns>instance of Sudoku</returns>
+        public override LatinSquare CreateCopy()
+        {
+            // TODO: in base constructor param is transposition, here it is original
+            Sudoku result = new Sudoku(this);
+            LatinSquare nnt = new LatinSquare(nextTransposition.nextTransposition.entries,result);
+            LatinSquare nt = new LatinSquare( nextTransposition.entries, nnt);
+            result.nextTransposition = nt;
+            return result;
         }
 
         public override void SetEntry(int row, int col, int num)
