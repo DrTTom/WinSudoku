@@ -1,25 +1,100 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Threading;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace WinSudoku
 {
     /// <summary>
-    /// Took the try and revert method out of LatinSquare to prepare parallization.
+    /// Backtracking algorithm implemented both sequentially using recursive depth-first-search and in parrallel unrecursively with undefined 
+    /// search sequence.
+    /// Instances of this class are for one time use only!
     /// </summary>
     public class BruteForceSolver
     {
         public int Effort { get; set; }
+
+        private LatinSquare solution;
+        private Tasks<LatinSquare> tasks = new Tasks<LatinSquare>();
+
         public bool Reverse { get; set; }
-        
+
+        private void AddEntry()
+        {
+            while (true)
+            {
+                LatinSquare square = tasks.GetNext();
+                if (square == null)
+                {
+                    return;
+                }
+                try
+                {
+                    square.AddFindings();
+                    var target = findEntryWithMinChoices(square);
+                    if (target.Row == -1)
+                    {
+                        solution = square;
+                        tasks.AbortAll();
+                        break;
+                    }
+                    List<int> values = square.entries[target.Row][target.Col].GetAllowedValues();
+                    if (Reverse)
+                    {
+                        values.Reverse();
+                    }
+                    int remaining = values.Count;
+                    foreach (int num in values)
+                    {
+                        try
+                        {
+                            LatinSquare candidate = (--remaining == 0 ? square : square.CreateCopy());
+                            candidate.SetEntry(target.Row, target.Col, num);
+                            tasks.Add(candidate);
+                        }
+                        catch (IllegalEntryException)
+                        {
+                            Effort++;
+                        }
+                    }
+                }
+                catch (IllegalEntryException) // AddFindings
+                {
+                    Effort++;
+                } finally
+                {
+                    tasks.Done();
+                }
+            }
+        }
+
+        public LatinSquare CompleteParallel(LatinSquare square, int numberThreads)
+        {
+            tasks.Add(square);
+
+            List<Thread> threads = new List<Thread>();
+            for (int i=0; i<numberThreads; i++)
+            {
+                threads.Add(new Thread(AddEntry));
+            }
+            threads.ForEach(t => t.Start());
+            threads.ForEach(t => t.Join());
+
+            if (solution==null)
+            {
+                throw new IllegalEntryException();
+            }
+            return solution;
+        }
+
+
         public LatinSquare Complete(LatinSquare square)
         {
             if (square == null) throw new ArgumentNullException(nameof(square));
 
             square.AddFindings();
-            
+
             var target = findEntryWithMinChoices(square);
             if (target.Row == -1)
             {
@@ -44,7 +119,7 @@ namespace WinSudoku
                 catch (IllegalEntryException e)
                 {
                     Effort++;
-                    last = e;                    
+                    last = e;
                 }
             }
             throw last;
