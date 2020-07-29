@@ -16,7 +16,7 @@ namespace WinSudoku
         
         public LatinSquare Complete(LatinSquare square)
         {
-            if (square == null) throw new ArgumentNullException("square");
+            if (square == null) throw new ArgumentNullException(nameof(square));
 
             square.AddFindings();
             

@@ -24,7 +24,7 @@ namespace WinSudoku
         }
 
         private static readonly CultureInfo CULTURE = new CultureInfo("de-DE");
-        private static readonly int SIZE = 9;
+        private const int SIZE = 9;
         private static readonly Regex NUMBER = new Regex(".*([1-9]\\z)");
 
         private static readonly SolidColorBrush INPUT = Brushes.Black;
@@ -35,7 +35,7 @@ namespace WinSudoku
 
         private FillMode fillMode = FillMode.None;
         private int[][] currentInput;
-        private Sudoku currentSolver;
+        private Sudoku currentSudoku;
 
         public MainWindow()
         {
@@ -116,11 +116,11 @@ namespace WinSudoku
                         else
                         {
                             currentInput[row][col] = num;
-                            currentSolver.SetEntry(row, col, num - 1);
+                            currentSudoku.SetEntry(row, col, num - 1);
                         }
-                        currentSolver.AddFindings();
+                        currentSudoku.AddFindings();
                         stateLabel.Content = "";
-                        ShowResult(currentSolver, DIRECT_CONCLUSION);
+                        ShowResult(currentSudoku, DIRECT_CONCLUSION);
                     }
                     catch (IllegalEntryException)
                     {
@@ -161,18 +161,18 @@ namespace WinSudoku
             try
             {
                 int duration = Environment.TickCount;
-                Sudoku solver = createSolver(input);                
-                solver.AddFindings();
-                stateLabel.Dispatcher.Invoke(() => ShowResult(solver, DIRECT_CONCLUSION));
-                BruteForceSolver brute = new BruteForceSolver();
-                solver = (Sudoku) brute.Complete(solver);
+                Sudoku sudoku = CreateSudoku(input);                
+                sudoku.AddFindings();
+                stateLabel.Dispatcher.Invoke(() => ShowResult(sudoku, DIRECT_CONCLUSION));
+                BruteForceSolver solver = new BruteForceSolver();
+                sudoku = (Sudoku) solver.Complete(sudoku);
                 duration = Environment.TickCount - duration;
-                stateLabel.Dispatcher.Invoke(() => ShowResult(solver, COMPUTED));
+                stateLabel.Dispatcher.Invoke(() => ShowResult(sudoku, COMPUTED));
 
-                Sudoku other = createSolver(input);
-                brute.Reverse = true;
-                other = (Sudoku) brute.Complete(other);
-                status = solver.Equals(other) ? "Schwierigkeit " + Convert.ToString(brute.Effort, CULTURE) : "Mehrdeutig";
+                Sudoku other = CreateSudoku(input);
+                solver.Reverse = true;
+                other = (Sudoku) solver.Complete(other);
+                status = sudoku.Equals(other) ? "Schwierigkeit " + Convert.ToString(solver.Effort, CULTURE) : "Mehrdeutig";
                 status = status + " (" + Convert.ToString(duration, CULTURE) + " ms)";
             }
             catch (IllegalEntryException)
@@ -186,9 +186,9 @@ namespace WinSudoku
             });
         }
 
-        private static Sudoku createSolver(int[][] input)
+        private static Sudoku CreateSudoku(int[][] input)
         {
-            Sudoku solver = Sudoku.create(3, 3);
+            Sudoku result = Sudoku.create(3, 3);
             for (int row = 0; row < input.Length; row++)
             {
                 for (int col = 0; col < input[row].Length; col++)
@@ -196,11 +196,12 @@ namespace WinSudoku
                     int val = input[row][col];
                     if (val > 0)
                     {
-                        solver.SetEntry(row, col, val - 1);
+                        result.SetEntry(row, col, val - 1);
                     }
                 }
             }
-            return solver;
+            result.AddFindings();
+            return result;
         }
 
         private void MenuItem_New(object sender, RoutedEventArgs e)
@@ -224,8 +225,8 @@ namespace WinSudoku
                     if (fillMode==FillMode.Direct)
                     {
                         currentInput = getUserInput();
-                        currentSolver = createSolver(currentInput);
-                        ShowResult(currentSolver, DIRECT_CONCLUSION);
+                        currentSudoku = CreateSudoku(currentInput);
+                        ShowResult(currentSudoku, DIRECT_CONCLUSION);
                     }
                 });
         }
@@ -275,7 +276,7 @@ namespace WinSudoku
                 }
             });
             currentInput = getUserInput();
-            currentSolver = createSolver(currentInput);
+            currentSudoku = CreateSudoku(currentInput);
             stateLabel.Content = "";
             fillMode = oldMode;
         }
@@ -303,8 +304,8 @@ namespace WinSudoku
             {
                 fillMode = FillMode.Direct;
                 currentInput = getUserInput();
-                currentSolver = createSolver(currentInput);
-                ShowResult(currentSolver, DIRECT_CONCLUSION);
+                currentSudoku = CreateSudoku(currentInput);
+                ShowResult(currentSudoku, DIRECT_CONCLUSION);
             }
             else
             {

@@ -79,8 +79,8 @@ namespace WinSudoku
             nextTransposition = nt;
         }
 
-        protected static NumberSet[][] CloneEntries(NumberSet[][] original)
-        {
+        internal static NumberSet[][] CloneEntries(NumberSet[][] original)
+        {            
             NumberSet[][] clone = new NumberSet[original.Length][];
             for (int i = 0; i < original.Length; i++)
             {
@@ -136,76 +136,6 @@ namespace WinSudoku
             {
                 // just repeat
             }
-        }
-
-        /// <summary>
-        /// Uses brute force to complete the whole matrix if possible. 
-        /// </summary>
-        /// <returns>number of entries which turned out to be wrong and have been rolled back</returns>
-        public int complete(bool doReverse)
-        {
-            AddFindings();
-            int numberRestores = 0;
-            var target = findEntryWithMinChoices();
-            if (target.Row == -1)
-            {
-                return numberRestores;
-            }
-            NumberSet[][] backupA = CloneEntries(entries);
-            NumberSet[][] backupB = CloneEntries(nextTransposition.entries);
-            NumberSet[][] backupC = CloneEntries(nextTransposition.nextTransposition.entries);
-            IllegalEntryException last = null;
-
-            List<int> values = entries[target.Row][target.Col].GetAllowedValues();
-            if (doReverse)
-            {
-                values.Reverse();
-            }
-            foreach (int num in values)
-            {
-                try
-                {
-                    SetEntry(target.Row, target.Col, num);
-                    numberRestores += complete(doReverse);
-                    return numberRestores;
-                }
-                catch (IllegalEntryException e)
-                {
-                    numberRestores++;
-                    last = e;
-                    entries = backupA;
-                    pendingFindings.Clear();
-                    nextTransposition.entries = backupB;
-                    nextTransposition.pendingFindings.Clear();
-                    nextTransposition.nextTransposition.entries = backupC;
-                    nextTransposition.nextTransposition.pendingFindings.Clear();
-                }
-            }
-            throw last;
-        }
-
-        private Entry findEntryWithMinChoices()
-        {
-            int minChoices = entries.Length;
-            int targetRow = -1;
-            int targetCol = -1;
-
-            for (int row = 0; row < entries.Length; row++)
-                for (int col = 0; col < entries.Length; col++)
-                {
-                    int choices = entries[row][col].GetNumPossibleValues();
-                    if (choices == 2)
-                    {
-                        return new Entry(row, col, NumberSet.UNKNOWN);
-                    }
-                    if (choices > 1 && choices < minChoices)
-                    {
-                        minChoices = choices;
-                        targetRow = row;
-                        targetCol = col;
-                    }
-                }
-            return new Entry(targetRow, targetCol, NumberSet.UNKNOWN);
         }
 
         private String toString(NumberSet[][] value)
