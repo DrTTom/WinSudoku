@@ -8,7 +8,8 @@ namespace WinSudoku
 {
     /// <summary>
     /// Backtracking algorithm implemented both sequentially using recursive depth-first-search and in parrallel unrecursively with undefined 
-    /// search sequence.
+    /// search sequence. Parallelization does not work well because additional threads require synchronization overhead and increase 
+    /// the overall effort by computing more invalid alternatives. However, using 4 threads increases speed by up to factor 2. 
     /// Instances of this class are for one time use only!
     /// </summary>
     public class BruteForceSolver
@@ -22,7 +23,7 @@ namespace WinSudoku
 
         private void AddEntry()
         {
-            while (true)
+            while (solution == null)
             {
                 LatinSquare square = tasks.GetNext();
                 if (square == null)
@@ -31,41 +32,62 @@ namespace WinSudoku
                 }
                 try
                 {
+                    addOneEntry(square);
+                }
+                finally
+                {
+                    tasks.Done();
+                }
+            }
+        }
+
+        private void addOneEntry(LatinSquare square)
+        {
+            try
+            {
+                while (solution == null)
+                {
                     square.AddFindings();
                     var target = findEntryWithMinChoices(square);
                     if (target.Row == -1)
                     {
                         solution = square;
                         tasks.AbortAll();
-                        break;
+                        return;
                     }
+
                     List<int> values = square.entries[target.Row][target.Col].GetAllowedValues();
                     if (Reverse)
                     {
                         values.Reverse();
                     }
+
                     int remaining = values.Count;
                     foreach (int num in values)
                     {
-                        try
+                        if (--remaining > 0)
                         {
-                            LatinSquare candidate = (--remaining == 0 ? square : square.CreateCopy());
-                            candidate.SetEntry(target.Row, target.Col, num);
-                            tasks.Add(candidate);
+                            try
+                            {
+                                LatinSquare candidate = square.CreateCopy();
+                                candidate.SetEntry(target.Row, target.Col, num);
+                                tasks.Add(candidate);
+                            }
+                            catch (IllegalEntryException)
+                            {
+                                Effort++;
+                            }
                         }
-                        catch (IllegalEntryException)
+                        else
                         {
-                            Effort++;
+                            square.SetEntry(target.Row, target.Col, num); // just continue loop instead of wait for another task                            
                         }
                     }
                 }
-                catch (IllegalEntryException) // AddFindings
-                {
-                    Effort++;
-                } finally
-                {
-                    tasks.Done();
-                }
+            }
+            catch (IllegalEntryException)
+            {
+                Effort++;
             }
         }
 
@@ -74,14 +96,14 @@ namespace WinSudoku
             tasks.Add(square);
 
             List<Thread> threads = new List<Thread>();
-            for (int i=0; i<numberThreads; i++)
+            for (int i = 0; i < numberThreads; i++)
             {
                 threads.Add(new Thread(AddEntry));
             }
             threads.ForEach(t => t.Start());
             threads.ForEach(t => t.Join());
 
-            if (solution==null)
+            if (solution == null)
             {
                 throw new IllegalEntryException();
             }

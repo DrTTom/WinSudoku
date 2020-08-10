@@ -165,7 +165,7 @@ namespace WinSudoku
                 sudoku.AddFindings();
                 stateLabel.Dispatcher.Invoke(() => ShowResult(sudoku, DIRECT_CONCLUSION));
                 BruteForceSolver solver = new BruteForceSolver();
-                sudoku = (Sudoku) solver.Complete(sudoku);
+                sudoku = (Sudoku) solver.CompleteParallel(sudoku, 4);
                 duration = Environment.TickCount - duration;
                 stateLabel.Dispatcher.Invoke(() => ShowResult(sudoku, COMPUTED));
 
